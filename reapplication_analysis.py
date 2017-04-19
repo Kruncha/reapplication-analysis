@@ -572,24 +572,54 @@ def get_columns():
     null_dummy_cols = ['SAP_Standing__c']
     return linear_cols, indicator_cols, other_cols, dummy_cols, null_dummy_cols
 
+def main(saved=False, inbound=False, window_size=30, roc=True):
+    '''
+    INPUT:
+        - saved: boolean
+        - inbound: boolean
+        - window_size: int
+        - roc: boolean
+    OUTPUT:
+        - lead_df: DataFrame
+        - email_df: DataFrame
+        - hist_df: DataFrame
+        - task_df: DataFrame
+        - X: 2D feature matrix (after cleaning)
+        - y: 1D target vector
+        - filtered: list of strings (column names in final model)
+        - fitted: fitted Logit model
+    The main pipeline to clean and combine the data and run it through the
+    logistic regression model.
+    '''
+    lead_df, email_df, hist_df, task_df = load_data(saved=saved)
+    lead_df = merge_all(lead_df, hist_df, task_df)
+    if inbound:
+        lead_df = lead_df[lead_df['Inbound_Applicants__c']==1]
+    else:
+        lead_df = lead_df[lead_df['Inbound_Applicants__c']!=1]
+
+    X = clean_data(lead_df, inbound=inbound, split=True, window_size=30)
+    y = X.pop('Status')
+    vifs, filtered = get_vifs(X, verbose=False)
+    fitted = logreg(X[filtered], y, train_test=False, roc=roc)
+
+    return lead_df, email_df, hist_df, task_df, X, y, filtered, fitted
+
 
 if __name__ == '__main__':
-    lead_df, email_df, hist_df, task_df = load_data(saved=True)
-    lead_df = merge_all(lead_df, hist_df, task_df)
-    inbound = lead_df[lead_df['Inbound_Applicants__c']==1]
-    outbound = lead_df[lead_df['Inbound_Applicants__c']!=1]
+    '''
+    saved: Use saved=False if you have not run the model before.  Use
+    saved=True if you have already run the model and the initial cleaned
+    DataFrames have been saved.
 
-    X = clean_data(outbound, split=True, window_size=30)
-    y = X.pop('Status')
-    vifs, filtered = get_vifs(X)
-    outbound_fitted = logreg(X[filtered], y, train_test=False)
+    inbound: Use inbound=True if running the model on inbound students; use
+    inbound=False if running the model on non-inbound students.
 
-    #X = clean_data(outbound, split=False, window_size=30)
-    #y = X.pop('Status')
-    #linear_columns, _, _, _, _ = get_columns()
-    #tree = get_tree(X[linear_columns], y)
+    window_size: Time window in number of days to be considered for the model.
+    Default is 30, but we can increase this number as more data comes in.
 
-    #X = clean_data(inbound, inbound=True, split=True, window_size=15)
-    #y = X.pop('Status')
-    #vifs, filtered = get_vifs(X)
-    #inbound_fitted = logreg(X[filtered], y)
+    roc: Use roc=True if you want to view the ROC curve; use roc=False
+    otherwise.
+    '''
+    lead_df, email_df, hist_df, task_df, X, y, filtered, fitted = \
+    main(saved=False, inbound=False, window_size=30, roc=True)
