@@ -8,7 +8,7 @@ The company would like to know how to use its resources to most effectively and 
 
 ### Overview
 
-Data is read from four main csv files:
+Data is read from four main csv files:  
 --Lead.csv: The main file; contains data for the students themselves (23,691 rows, one for each lead; 138 columns)  
 --EntityHistory.csv: Contains data that logs and timestamps certain changes in the database, including entry of new leads into the database and status changes of those leads (18 columns)  
 --Task.csv: Contains data for tasks related to engaging leads, including calls, e-mails, and other points of contact (45 columns)  
